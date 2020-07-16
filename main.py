@@ -1,38 +1,25 @@
-import csv
+from Clustering import Node, Cluster
 import re
-import requests as r
 import numpy as np
 import pandas as pd
+import requests as r
 
-globalDeaths = r.get("https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+globalDeaths = r.get(
+    "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
 globalDeaths.raise_for_status()
 globalDeaths = re.sub("\"(.+), (.+)\"", r'\g<2> \g<1>', globalDeaths.text)
-usDeaths = pd.read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv")
+globalDeaths = globalDeaths.split('\n')
+for i in range(len(globalDeaths)):
+    globalDeaths[i] = globalDeaths[i].split(',')
+usDeaths = pd.read_csv(
+    "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv")
 DEBUG = False
-
-def load_dataset(data: str) -> np.array:
-    # fix "Korea, South" and other one
-    raw = re.sub("\"(.+), (.+)\"", r'\g<2> \g<1>', data)
-    records = raw.split('\n')
-    c_data = dict()
-    for record in records[1:-1]:
-        record = record.split(',')
-        country = record[1]
-        deaths = record[-1]
-        if country not in c_data.keys():
-            c_data[country] = int(deaths)
-        else:
-            c_data[country] += int(deaths)
-
-    return c_data
 
 
 def question1() -> str:
     # fix "Korea, South" and other one
-    records = globalDeaths.split('\n')
     canada = None
-    for record in records[1:-1]:
-        record = record.split(',')
+    for record in globalDeaths[1:-1]:  # skip header and new line at the end of file
         if record[1] == 'Canada':
             if canada is None:
                 canada = np.array(record[4:], dtype=int)
@@ -55,10 +42,8 @@ def question1() -> str:
 
 def question2() -> str:
     # fix "Korea, South" and other one
-    records = globalDeaths.split('\n')
     canada = None
-    for record in records[1:-1]:
-        record = record.split(',')
+    for record in globalDeaths[1:-1]:
         if record[1] == 'Canada':
             if canada is None:
                 canada = np.array(record[4:], dtype=int)
@@ -70,11 +55,11 @@ def question2() -> str:
     us = us[0]
     assert len(us) == len(canada), f'len(us) = {len(us)}\tlen(canada) = {len(canada)}'
 
-    us_diff = np.zeros((1, len(us)-1), dtype=int)
-    canada_diff = np.zeros((1, len(canada)-1), dtype=int)
+    us_diff = np.zeros((1, len(us) - 1), dtype=int)
+    canada_diff = np.zeros((1, len(canada) - 1), dtype=int)
     for i in range(len(us_diff[0])):
-        us_diff[0][i] = us[i+1] - us[i]
-        canada_diff[0][i] = canada[i+1] - canada[i]
+        us_diff[0][i] = us[i + 1] - us[i]
+        canada_diff[0][i] = canada[i + 1] - canada[i]
 
     ret = ''
     for diff in canada_diff[0][:-1]:
@@ -86,8 +71,31 @@ def question2() -> str:
     return ret
 
 
+def parameters() -> (str, list):
+    june27th = globalDeaths[0].index('6/27/20')
+    parameter_estimates = list()
+    for record in globalDeaths[1:-1]:
+        lat = float(record[2])
+        long = float(record[3])
+        j27 = int(record[june27th])
+        parameter_estimates.append((lat, long, j27))
+    ret = ""
+    for estimate in parameter_estimates[:-1]:
+        ret += str(round(estimate[0], 2)) + ',' + str(round(estimate[1], 2)) + ',' + str(estimate[2]) + '\n'
+    ret += str(round(parameter_estimates[-1][0], 2)) + ',' + \
+           str(round(parameter_estimates[-1][1], 2)) + ',' + \
+           str(parameter_estimates[-1][2])
+    return ret, parameter_estimates
+
+
 def main():
-    ds = load_dataset(globalDeaths)
+    a = Node(1, 0, 0)
+    b = Node(0, 1, 0)
+    print(a.euclidean(b))
+    print(b.euclidean(a))
+    print(a.euclidean(a))
+    print(b.euclidean(b))
+
 
     if DEBUG:
         return 1
@@ -100,9 +108,9 @@ def main():
         f.write('@difference\n')
         f.write(f'{question2()}\n')
         f.write('@answer_3\n')
-        f.write(f'\n')
+        f.write(f'Used TA\'s parameters\n')
         f.write('@parameters\n')
-        f.write(f'\n')
+        f.write(f'{parameters()[0]}\n')
         f.write(f'@hacs\n')
         f.write(f'\n')
         f.write('@hacc\n')
