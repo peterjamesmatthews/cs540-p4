@@ -23,9 +23,10 @@ class Cluster:
     def __init__(self, nodes):
         self.nodes = nodes
         self.center = Cluster.compute_center(nodes)
+        self.distortion = Cluster.compute_distortion(nodes, self.center)
 
     @staticmethod
-    def compute_center(nodes):
+    def compute_center(nodes) -> Node:
         x = 0.0
         y = 0.0
         z = 0.0
@@ -38,10 +39,11 @@ class Cluster:
         z /= len(nodes)
         return Node(x, y, z)
 
-    def distortion(self):
+    @staticmethod
+    def compute_distortion(nodes, center):
         distortion = 0
-        for node in self.nodes:
-            distortion += node.euclidean(self.center)
+        for node in nodes:
+            distortion += node.euclidean(center)
         return distortion
 
     @staticmethod
@@ -55,8 +57,24 @@ class Cluster:
         return distances[single[0], single[1]]
 
     @staticmethod
+    def complete_linkage(cluster1, cluster2):
+        distances = np.zeros(shape=(len(cluster1.nodes), len(cluster2.nodes)), dtype=float)
+        for i, node1 in enumerate(cluster1.nodes):
+            for j, node2 in enumerate(cluster2.nodes):
+                distances[i, j] = node1.euclidean(node2)
+        complete = np.argmax(distances)
+        complete = np.unravel_index(complete, distances.shape)
+        return distances[complete[0], complete[1]]
+
+    @staticmethod
     def merge(cluster1, cluster2):
         return Cluster(cluster1.nodes + cluster2.nodes)
 
+    def q9_hack(self):
+        dist = 0
+        for node in self.nodes:
+            dist += node.euclidean(self.center) ** 2
+        return dist
+
     def __str__(self):
-        return str(self.nodes)
+        return f'{round(self.center.param1,4)},{round(self.center.param2,4)},{round(self.center.param1,3)}'

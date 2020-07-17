@@ -2,6 +2,7 @@ from Clustering import Node, Cluster
 import re
 import numpy as np
 import pandas as pd
+import random
 import requests as r
 
 globalDeaths = r.get(
@@ -124,7 +125,94 @@ def question5() -> str:
     return ret[:-1]  # cut off last ','
 
 
+def question6() -> str:
+    k = 8
+    m = parameters()[1]
+    for i, x in enumerate(m):
+        m[i] = Node(x[0], x[1], x[2])
+    clusters = list()
+    # make a cluster for each node
+    for x in m:
+        clusters.append(Cluster([x]))
+    while len(clusters) > k:  # stop when there are 8 clusters
+        # compute matrix of distances between clusters using single linkage
+        distances = np.zeros(shape=(len(clusters), len(clusters)), dtype=float)
+        for i in range(len(distances)):
+            for j in range(len(distances[i])):
+                if i >= j:
+                    distances[i, j] = float('inf')
+                else:
+                    distances[i, j] = Cluster.complete_linkage(clusters[i], clusters[j])
+        # merge closest clusters
+        merge = np.unravel_index(np.argmin(distances), distances.shape)
+        cluster1 = clusters[merge[0]]
+        cluster2 = clusters[merge[1]]
+        clusters[merge[0]] = Cluster.merge(cluster1, cluster2)
+        clusters = np.delete(clusters, merge[1])
+    for i in range(len(clusters)):
+        for node in clusters[i].nodes:
+            node.cluster = i
+    ret = ""
+    for node in m:
+        ret += f'{node.cluster},'
+    return ret[:-1]  # cut off last ','
+
+
+def question7() -> (str, list):
+    k = 8
+    m = parameters()[1]
+    n = len(m)
+    for i, x in enumerate(m):
+        m[i] = Node(x[0], x[1], x[2])
+    clusters = random.sample(m, k)
+    for i, node in enumerate(clusters):
+        clusters[i] = Cluster([node])
+    lastDistortion = -1
+    while True:
+        # calculate distortion
+        totalDistortion = 0
+        for cluster in clusters:
+            totalDistortion += cluster.distortion
+        if lastDistortion == totalDistortion:
+            break
+        # assign each point to its closest center
+        newClusters = [list() for i in range(k)]
+        distances = np.zeros(k, dtype=float)
+        for i in range(n):
+            for j in range(k):
+                distances[j] = m[i].euclidean(clusters[j].center)
+            newCluster = int(np.argmin(distances))
+            newClusters[newCluster].append(m[i])
+        # update all cluster centers as the center of points
+        clusters = list()
+        for i in range(k):
+            clusters.append(Cluster(newClusters[i]))
+        lastDistortion = totalDistortion
+    for i in range(len(clusters)):
+        for node in clusters[i].nodes:
+            node.cluster = i
+    ret = ""
+    for node in m:
+        ret += f'{node.cluster},'
+    return ret[:-1], clusters  # cut off last ','
+
+
+def question8(clusters) -> str:
+    ret = ""
+    for cluster in clusters:
+        ret += f'{str(cluster)}\n'
+    return ret[:-1]
+
+
+def question9(clusters) -> str:
+    td = 0
+    for cluster in clusters:
+        td += cluster.q9_hack()
+    return str(td)
+
+
 def main():
+    q7, clusters = question7()
     if DEBUG:
         return 1
     with open('P4.txt', 'w') as f:
@@ -142,13 +230,13 @@ def main():
         f.write(f'@hacs\n')
         f.write(f'{question5()}\n')
         f.write('@hacc\n')
-        f.write(f'\n')
+        f.write(f'{question6()}\n')
         f.write('@kmeans\n')
-        f.write(f'\n')
+        f.write(f'{q7}\n')
         f.write('@centers\n')
-        f.write(f'\n')
+        f.write(f'{question8(clusters)}\n')
         f.write('@answer_9\n')
-        f.write(f'\n')
+        f.write(f'{question9(clusters)}\n')
         f.write('@answer_10\n')
         f.write('None\n')
     pass
