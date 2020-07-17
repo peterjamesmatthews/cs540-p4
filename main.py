@@ -5,14 +5,16 @@ import pandas as pd
 import requests as r
 
 globalDeaths = r.get(
-    "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+    "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series"
+    "/time_series_covid19_deaths_global.csv")
 globalDeaths.raise_for_status()
 globalDeaths = re.sub("\"(.+), (.+)\"", r'\g<2> \g<1>', globalDeaths.text)
 globalDeaths = globalDeaths.split('\n')
 for i in range(len(globalDeaths)):
     globalDeaths[i] = globalDeaths[i].split(',')
 usDeaths = pd.read_csv(
-    "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv")
+    "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
+    "/time_series_covid19_deaths_US.csv")
 DEBUG = False
 
 
@@ -88,15 +90,41 @@ def parameters() -> (str, list):
     return ret, parameter_estimates
 
 
+def question5() -> str:
+    k = 8
+    m = parameters()[1]
+    for i, x in enumerate(m):
+        m[i] = Node(x[0], x[1], x[2])
+    clusters = list()
+    # make a cluster for each node
+    for x in m:
+        clusters.append(Cluster([x]))
+
+    while len(clusters) > k:  # stop when there are 8 clusters
+        # compute matrix of distances between clusters using single linkage
+        distances = np.zeros(shape=(len(clusters), len(clusters)), dtype=float)
+        for i in range(len(distances)):
+            for j in range(len(distances[i])):
+                if i >= j:
+                    distances[i, j] = float('inf')
+                else:
+                    distances[i, j] = Cluster.single_linkage(clusters[i], clusters[j])
+        # merge closest clusters
+        merge = np.unravel_index(np.argmin(distances), distances.shape)
+        cluster1 = clusters[merge[0]]
+        cluster2 = clusters[merge[1]]
+        clusters[merge[0]] = Cluster.merge(cluster1, cluster2)
+        clusters = np.delete(clusters, merge[1])
+    for i in range(len(clusters)):
+        for node in clusters[i].nodes:
+            node.cluster = i
+    ret = ""
+    for node in m:
+        ret += f'{node.cluster},'
+    return ret[:-1]  # cut off last ','
+
+
 def main():
-    a = Node(1, 0, 0)
-    b = Node(0, 1, 0)
-    print(a.euclidean(b))
-    print(b.euclidean(a))
-    print(a.euclidean(a))
-    print(b.euclidean(b))
-
-
     if DEBUG:
         return 1
     with open('P4.txt', 'w') as f:
@@ -112,7 +140,7 @@ def main():
         f.write('@parameters\n')
         f.write(f'{parameters()[0]}\n')
         f.write(f'@hacs\n')
-        f.write(f'\n')
+        f.write(f'{question5()}\n')
         f.write('@hacc\n')
         f.write(f'\n')
         f.write('@kmeans\n')
