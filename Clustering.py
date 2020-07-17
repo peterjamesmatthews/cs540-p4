@@ -70,11 +70,5 @@ class Cluster:
     def merge(cluster1, cluster2):
         return Cluster(cluster1.nodes + cluster2.nodes)
 
-    def q9_hack(self):
-        dist = 0
-        for node in self.nodes:
-            dist += node.euclidean(self.center) ** 2
-        return dist
-
     def __str__(self):
         return f'{round(self.center.param1,4)},{round(self.center.param2,4)},{round(self.center.param1,3)}'

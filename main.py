@@ -205,10 +205,17 @@ def question8(clusters) -> str:
 
 
 def question9(clusters) -> str:
-    td = 0
+    totalDist = 0.0
     for cluster in clusters:
-        td += cluster.q9_hack()
-    return str(td)
+        dist = 0.0
+        for node in cluster.nodes:
+            dist += (node.param1 - cluster.center.param1)**2 + \
+                    (node.param2 - cluster.center.param2)**2 + \
+                    (node.param3 - cluster.center.param3)**2
+        totalDist += dist
+    return str(round(totalDist, 4))
+
+
 
 
 def main():
